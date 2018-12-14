@@ -9,7 +9,7 @@ import (
 
 type EnvPair struct {
 	key   string
-	value []string
+	value interface{}
 }
 
 func main() {
@@ -42,7 +42,7 @@ func getResult(pairs []EnvPair) (map[string]interface{}, error) {
 			// then set the value instead of creating a new object
 			if len(keys)-1 == j {
 				currentMap[keys[j]] = pairs[i].value
-				fmt.Printf("Done for %s\n", keys[j])
+				// fmt.Printf("Done for %+v\n", currentMap)
 				continue
 			}
 
@@ -52,7 +52,8 @@ func getResult(pairs []EnvPair) (map[string]interface{}, error) {
 				// If there already exists an object for this key, then add to it
 				tmpMap, ok := currentMap[keys[j]].(map[string]interface{})
 				if !ok {
-					return nil, fmt.Errorf("Unexpected map structure for %+v", currentMap[keys[j]])
+					// return nil, fmt.Errorf("Unexpected map structure for %+v", currentMap[keys[j]])
+					continue
 				}
 				newMap = tmpMap
 			} else {
@@ -60,6 +61,7 @@ func getResult(pairs []EnvPair) (map[string]interface{}, error) {
 				newMap = make(map[string]interface{})
 			}
 			// For our current key list after the split we can work on this new object
+			currentMap[keys[j]] = newMap
 			currentMap = newMap
 		}
 	}
@@ -69,13 +71,17 @@ func getResult(pairs []EnvPair) (map[string]interface{}, error) {
 func getPairs() ([]EnvPair, error) {
 	pairs := make([]EnvPair, len(os.Environ()))
 	for i := range os.Environ() {
-		pair := strings.Split(os.Environ()[i], "=")
+		pair := strings.SplitN(os.Environ()[i], "=", 2)
 		if len(pair) != 2 {
 			// return nil, fmt.Errorf("Env in wrong format! Got %v", pair)
 			// fmt.Printf("Env in wrong format! Got %v", pair)
 			continue
 		}
 		vals := strings.Split(pair[1], ":")
+		if len(vals) == 1 {
+			pairs[i] = EnvPair{pair[0], vals[0]}
+			continue
+		}
 		pairs[i] = EnvPair{pair[0], vals}
 	}
 	return pairs, nil
